@@ -20,7 +20,7 @@ export default function FormBuilder({ value, onChange, onRemove }) {
   return (
     <div className="card shadow-md bg-base-100 p-4 space-y-3 border border-gray-200">
       <div className="flex justify-between items-center">
-        <h2 className="font-semibold">Field</h2>
+        <label className="font-semibold">Field</label>
         {onRemove && (
           <button
             type="button"
@@ -40,6 +40,8 @@ export default function FormBuilder({ value, onChange, onRemove }) {
         placeholder="Question label"
       />
 
+      <label className="font-semibold">Field ID</label>
+
       <input
         type="text"
         value={value.name || ""}
@@ -47,9 +49,12 @@ export default function FormBuilder({ value, onChange, onRemove }) {
           setNameEdited(true);
           updateField("name", e.target.value);
         }}
-        className="input input-bordered w-full"
+        className="bg-base-300 p-2 rounded-md w-full"
         placeholder="Field name"
+        readOnly
       />
+
+      <label className="font-semibold">Field Type</label>
 
       <select
         value={value.type}

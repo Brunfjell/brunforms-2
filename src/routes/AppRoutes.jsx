@@ -28,7 +28,7 @@ function ProtectedRoute({ children }) {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 p-4 min-h-[93.5vh]">{children}</main>
-      <Footer />
+      <Footer className="max-w-full"/>
     </div>
   );
 }
@@ -109,14 +109,6 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <Mail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/templates"
-        element={
-          <ProtectedRoute>
-            <Templates />
           </ProtectedRoute>
         }
       />

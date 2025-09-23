@@ -29,9 +29,6 @@ export default function Navbar() {
       <li>
         <Link to="/mail">Mail</Link>
       </li>
-      <li>
-        <Link to="/templates">Templates</Link>
-      </li>
     </>
   );
 

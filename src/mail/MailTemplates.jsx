@@ -3,6 +3,112 @@ import supabase from "../utils/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
 import Placeholders from "./Placeholders";
 
+function TriggersModal({ template, hrId, onClose }) {
+  const [triggers, setTriggers] = useState([]);
+  const [newEvent, setNewEvent] = useState("form_submission");
+
+  const eventOptions = [
+    { value: "form_submission", label: "On Form Submission" },
+    { value: "applicant_rejected", label: "On Applicant Rejected" },
+    { value: "applicant_accepted", label: "On Applicant Accepted" },
+  ];
+
+  useEffect(() => {
+    loadTriggers();
+  }, [template]);
+
+  async function loadTriggers() {
+    const { data, error } = await supabase
+      .from("hr_mail_triggers")
+      .select("*")
+      .eq("hr_id", hrId)
+      .eq("template_id", template.id)
+      .order("created_at", { ascending: true });
+    if (!error) setTriggers(data || []);
+  }
+
+  async function addTrigger() {
+    const payload = { hr_id: hrId, template_id: template.id, event: newEvent, is_active: true };
+    await supabase.from("hr_mail_triggers").insert([payload]);
+    await loadTriggers();
+  }
+
+  async function toggleTrigger(trigger) {
+    await supabase
+      .from("hr_mail_triggers")
+      .update({ is_active: !trigger.is_active })
+      .eq("id", trigger.id);
+    await loadTriggers();
+  }
+
+  async function deleteTrigger(triggerId) {
+    await supabase.from("hr_mail_triggers").delete().eq("id", triggerId);
+    await loadTriggers();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/5 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-base-200 rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h3 className="text-lg font-semibold mb-4">Manage Triggers – {template.name}</h3>
+
+        {triggers.length === 0 ? (
+          <p className="text-sm text-gray-500 mb-3">No triggers yet.</p>
+        ) : (
+          <ul className="space-y-2 mb-4">
+            {triggers.map((tr) => (
+              <li
+                key={tr.id}
+                className="flex justify-between items-center p-2 border rounded"
+              >
+                <span className="text-sm">
+                  {tr.event} – {tr.is_active ? "Active" : "Inactive"}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    className="btn btn-xs"
+                    onClick={() => toggleTrigger(tr)}
+                  >
+                    Toggle
+                  </button>
+                  <button
+                    className="btn btn-xs btn-error text-white"
+                    onClick={() => deleteTrigger(tr.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex gap-2 mb-4">
+          <select
+            className="select select-bordered w-full"
+            value={newEvent}
+            onChange={(e) => setNewEvent(e.target.value)}
+          >
+            {eventOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <button className="btn btn-primary text-white" onClick={addTrigger}>
+            + Add
+          </button>
+        </div>
+
+        <div className="flex justify-end">
+          <button className="btn" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MailTemplates() {
   const { hrProfile } = useAuth();
   const [templates, setTemplates] = useState([]);
@@ -10,6 +116,7 @@ export default function MailTemplates() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ id: null, name: "", subject: "", body: "" });
   const [showPlaceholderModal, setShowPlaceholderModal] = useState(false);
+  const [activeTriggerTemplate, setActiveTriggerTemplate] = useState(null);
 
   useEffect(() => {
     loadTemplates();
@@ -119,7 +226,7 @@ export default function MailTemplates() {
                     <button
                       type="button"
                       key={ph.id}
-                      className="badge badge-outline cursor-pointer hover:bg-base-200"
+                      className="badge bg-base-300 cursor-pointer hover:bg-base-200"
                       onClick={() => insertPlaceholder(ph.key)}
                     >
                       {`{${ph.key}}`}
@@ -153,6 +260,7 @@ export default function MailTemplates() {
               </div>
               <div className="mt-3 flex gap-2">
                 <button className="btn btn-sm btn-outline" onClick={() => handleEdit(t)}>Edit</button>
+                <button className="btn btn-sm" onClick={() => setActiveTriggerTemplate(t)}>Triggers</button>
               </div>
             </div>
           ))}
@@ -161,6 +269,14 @@ export default function MailTemplates() {
 
       {showPlaceholderModal && (
         <Placeholders hrId={hrProfile?.id} onClose={() => setShowPlaceholderModal(false)} />
+      )}
+
+      {activeTriggerTemplate && (
+        <TriggersModal
+          template={activeTriggerTemplate}
+          hrId={hrProfile?.id}
+          onClose={() => setActiveTriggerTemplate(null)}
+        />
       )}
     </div>
   );

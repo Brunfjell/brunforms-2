@@ -38,7 +38,7 @@ export default function Applicants() {
 
   function getApplicantName(data) {
     if (!data) return "Unnamed Applicant";
-    if (data.fullName) return data.fullName;
+    
     if (data.firstName && data.lastName) {
       return `${data.firstName} ${data.lastName}`;
     }

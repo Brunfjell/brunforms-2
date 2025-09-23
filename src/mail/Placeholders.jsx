@@ -154,7 +154,7 @@ export default function Placeholders({ hrId, onClose }) {
                     <td>{ph.mapping}</td>
                     <td>{ph.description}</td>
                     <td className="flex gap-2">
-                      <button className="btn btn-sm btn-outline" onClick={() => handleEdit(ph)}>
+                      <button className="btn btn-sm bg-secondary text-white" onClick={() => handleEdit(ph)}>
                         Edit
                       </button>
                       <button className="btn btn-sm btn-error text-white" onClick={() => handleDelete(ph.id)}>
