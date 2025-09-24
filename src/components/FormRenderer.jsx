@@ -18,17 +18,30 @@ export default function FormRenderer({ form, readonly = false }) {
     setValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  function getFieldKind(field) {
+    if (!field) return null;
+    if (field.type === "single_choice") return "single_choice";
+    if (field.type === "multiple_choice") {
+      if (field.allowMultiple === false) return "single_choice";
+      return "multiple_choice";
+    }
+    return field.type;
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const emptyRequired = form.schema.some(
-      (field) =>
-        field.required &&
-        (values[field.name] === undefined ||
-          values[field.name] === "" ||
-          (Array.isArray(values[field.name]) &&
-            values[field.name].length === 0))
-    );
+    const emptyRequired = form.schema.some((field) => {
+      if (!field.required) return false;
+      const kind = getFieldKind(field);
+      const val = values[field.name];
+
+      if (kind === "multiple_choice") {
+        return !Array.isArray(val) || val.length === 0;
+      } else {
+        return val === undefined || val === "";
+      }
+    });
 
     if (emptyRequired) {
       alert("Please fill all required fields");
@@ -63,9 +76,7 @@ export default function FormRenderer({ form, readonly = false }) {
       <div className="alert alert-success shadow-lg mt-4">
         <div>
           <span className="font-bold text-lg">Thank you for applying!</span>
-          <p className="mt-2">
-            Save this token to keep updated about your status:
-          </p>
+          <p className="mt-2">Save this token to keep updated about your status:</p>
           <p className="font-mono text-lg mt-1">{token}</p>
         </div>
       </div>
@@ -75,7 +86,16 @@ export default function FormRenderer({ form, readonly = false }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {form.schema.map((field) => {
-        const value = values[field.name] || "";
+        const kind = getFieldKind(field);
+
+        let value = values[field.name];
+        if (kind === "multiple_choice") {
+          value = Array.isArray(value) ? value : [];
+        } else if (kind === "single_choice") {
+          value = value ?? "";
+        } else {
+          value = values[field.name] ?? "";
+        }
 
         if (readonly) {
           return (
@@ -98,64 +118,57 @@ export default function FormRenderer({ form, readonly = false }) {
               </label>
               <FileUpload
                 applicantId={token || "temp"}
+                accept={field.accept}     
+                maxSize={field.maxSize}   
                 onUploaded={(url) =>
-                  handleChange(field.name, [
-                    ...(values[field.name] || []),
-                    url,
-                  ])
+                  handleChange(field.name, [...(values[field.name] || []), url])
                 }
               />
             </div>
           );
         }
 
-        if (field.type === "multiple_choice") {
-          const allowMultiple = field.allowMultiple || false;
-          const selected = Array.isArray(value) ? value : [value].filter(Boolean);
+        if (kind === "multiple_choice" || kind === "single_choice") {
+          const allowMultiple = kind === "multiple_choice";
+          const selected = allowMultiple ? value : value;
 
           return (
             <div key={field.id} className="form-control w-full">
               <label className="label">
                 <span className="label-text font-medium">
-                  {field.label}{" "}
-                  {field.required && <span className="text-red-500">*</span>}
+                  {field.label} {field.required && <span className="text-red-500">*</span>}
                 </span>
               </label>
+
               <div className="space-y-2">
                 {field.options?.map((opt, idx) =>
                   allowMultiple ? (
-                    <label
-                      key={idx}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
+                    <label key={idx} className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        name={`${field.name}-${idx}`}
                         value={opt}
-                        checked={selected.includes(opt)}
+                        checked={Array.isArray(selected) && selected.includes(opt)}
                         onChange={(e) => {
-                          let updated = [...selected];
+                          const current = Array.isArray(values[field.name]) ? [...values[field.name]] : [];
                           if (e.target.checked) {
-                            updated.push(opt);
+                            current.push(opt);
                           } else {
-                            updated = updated.filter((v) => v !== opt);
+                            const i = current.indexOf(opt);
+                            if (i >= 0) current.splice(i, 1);
                           }
-                          handleChange(field.name, updated);
+                          handleChange(field.name, current);
                         }}
-                        className="checkbox checkbox-primary checkbox-md"
+                        className="checkbox checkbox-primary checkbox-md text-white rounded-sm"
                       />
                       <span>{opt}</span>
                     </label>
                   ) : (
-                    <label
-                      key={idx}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
+                    <label key={idx} className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
                         name={field.name}
                         value={opt}
-                        checked={value === opt}
+                        checked={selected === opt}
                         onChange={() => handleChange(field.name, opt)}
                         className="radio radio-primary radio-md"
                         required={field.required}
@@ -183,8 +196,7 @@ export default function FormRenderer({ form, readonly = false }) {
           <div key={field.id} className="form-control w-full">
             <label className="label">
               <span className="label-text font-medium">
-                {field.label}{" "}
-                {field.required && <span className="text-red-500">*</span>}
+                {field.label} {field.required && <span className="text-red-500">*</span>}
               </span>
             </label>
             {type === "textarea" ? (

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import supabase from "../utils/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
 import Placeholders from "./Placeholders";
+import { FaTrash } from "react-icons/fa";
+import { MdEdit } from "react-icons/md";
 
 function TriggersModal({ template, hrId, onClose }) {
   const [triggers, setTriggers] = useState([]);
@@ -9,8 +11,10 @@ function TriggersModal({ template, hrId, onClose }) {
 
   const eventOptions = [
     { value: "form_submission", label: "On Form Submission" },
-    { value: "applicant_rejected", label: "On Applicant Rejected" },
-    { value: "applicant_accepted", label: "On Applicant Accepted" },
+    { value: "under_review", label: "On Applicant Under Review" },
+    { value: "shortlisted", label: "On Applicant Shortlisted" },
+    { value: "accepted", label: "On Applicant Accepted" },
+    { value: "rejected", label: "On Applicant Rejected" },
   ];
 
   useEffect(() => {
@@ -58,7 +62,7 @@ function TriggersModal({ template, hrId, onClose }) {
             {triggers.map((tr) => (
               <li
                 key={tr.id}
-                className="flex justify-between items-center p-2 border rounded"
+                className="flex justify-between items-center p-2 bg-secondary text-white rounded"
               >
                 <span className="text-sm">
                   {tr.event} – {tr.is_active ? "Active" : "Inactive"}
@@ -74,7 +78,7 @@ function TriggersModal({ template, hrId, onClose }) {
                     className="btn btn-xs btn-error text-white"
                     onClick={() => deleteTrigger(tr.id)}
                   >
-                    Delete
+                    <FaTrash/>
                   </button>
                 </div>
               </li>
@@ -259,7 +263,7 @@ export default function MailTemplates() {
                 <p className="text-xs text-gray-500 line-clamp-3">{t.body}</p>
               </div>
               <div className="mt-3 flex gap-2">
-                <button className="btn btn-sm btn-outline" onClick={() => handleEdit(t)}>Edit</button>
+                <button className="btn btn-sm bg-secondary text-white" onClick={() => handleEdit(t)}><MdEdit className="h-4 w-4"/></button>
                 <button className="btn btn-sm" onClick={() => setActiveTriggerTemplate(t)}>Triggers</button>
               </div>
             </div>

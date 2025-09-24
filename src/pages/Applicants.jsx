@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import supabase from "../utils/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
 import { MdVisibility } from "react-icons/md";
+import { sendApplicantStatusEmail } from "../utils/sendApplicantStatus";
 
 export default function Applicants() {
   const { hrProfile } = useAuth();
@@ -38,12 +39,13 @@ export default function Applicants() {
 
   function getApplicantName(data) {
     if (!data) return "Unnamed Applicant";
-    
-    if (data.firstName && data.lastName) {
-      return `${data.firstName} ${data.lastName}`;
-    }
-    if (data.firstName) return data.firstName;
-    if (data.lastName) return data.lastName;
+
+    const firstName = data.firstName || data["first-name"];
+    const lastName = data.lastName || data["last-name"];
+
+    if (firstName && lastName) return `${firstName} ${lastName}`;
+    if (firstName) return firstName;
+    if (lastName) return lastName;
 
     const firstStringField = Object.values(data).find(
       (val) => typeof val === "string" && val.trim() !== ""
@@ -68,6 +70,10 @@ export default function Applicants() {
       setSelectedApplicant((prev) =>
         prev ? { ...prev, status: newStatus } : prev
       );
+
+      if (hrProfile?.id) {
+        await sendApplicantStatusEmail(applicant.id, hrProfile.id, newStatus);
+      }
     } catch (err) {
       console.error("Failed to update status:", err);
       alert("Failed to update status.");
@@ -95,7 +101,7 @@ export default function Applicants() {
           <option value="submitted">Submitted</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
-          <option value="flagged">Flagged</option>
+          <option value="shortlisted">Shortlisted</option>
         </select>
       </div>
 
@@ -142,15 +148,15 @@ export default function Applicants() {
 
             <div className="max-h-[60vh] overflow-y-auto space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(selectedApplicant.data).map(([key, val]) => (
-                  key !== "resume" && (
+                {Object.entries(selectedApplicant.data).map(([key, val]) =>
+                  key !== "resume" ? (
                     <div key={key} className="p-3 rounded bg-base-300">
                       <strong className="capitalize">{key}:</strong>
                       <br />
                       <span className="ml-4">{String(val)}</span>
                     </div>
-                  )
-                ))}
+                  ) : null
+                )}
               </div>
 
               {selectedApplicant.data.resume && (
@@ -167,44 +173,40 @@ export default function Applicants() {
                       const fileUrl = typeof file === "string" ? file : file.url;
                       const fileName =
                         typeof file === "string"
-                          ? decodeURIComponent(file.split("/").pop() || `file-${idx}`)
+                          ? decodeURIComponent(
+                              file.split("/").pop() || `file-${idx}`
+                            )
                           : file.name || `file-${idx}`;
 
                       const isPDF = fileUrl.toLowerCase().endsWith(".pdf");
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
 
-                      if (isPDF) {
-                        return (
-                          <iframe
-                            key={idx}
-                            src={`${fileUrl}#toolbar=0&embedded=true`}
-                            title={fileName}
-                            className="w-full h-[500px] border rounded mb-4"
-                          />
-                        );
-                      }
-
-                      if (isImage) {
-                        return (
-                          <img
-                            key={idx}
-                            src={fileUrl}
-                            alt={fileName}
-                            className="w-full max-h-[500px] object-contain border rounded mb-4"
-                          />
-                        );
-                      }
-
                       return (
-                        <a
-                          key={idx}
-                          href={fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="link link-primary block mb-4"
-                        >
-                          {fileName}
-                        </a>
+                        <div key={idx} className="mb-6">
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-sm bg-secondary text-white mb-2"
+                          >
+                            Open in new tab
+                          </a>
+                          {isPDF ? (
+                            <iframe
+                              src={`${fileUrl}#toolbar=0&embedded=true`}
+                              title={fileName}
+                              className="w-full h-[500px] rounded mb-2"
+                            />
+                          ) : isImage ? (
+                            <img
+                              src={fileUrl}
+                              alt={fileName}
+                              className="w-full max-h-[500px] object-contain rounded mb-2"
+                            />
+                          ) : (
+                            <p className="text-sm mb-2">{fileName}</p>
+                          )}
+                        </div>
                       );
                     });
                   })()}
@@ -212,25 +214,33 @@ export default function Applicants() {
               )}
             </div>
 
-            <div className="modal-action flex flex-wrap gap-2">
-              <button
-                className="btn btn-warning"
-                onClick={() => updateStatus(selectedApplicant, "flagged")}
+            <div className="modal-action">
+              <select
+                className="select select-bordered w-full sm:w-48"
+                value={selectedApplicant.status || ""}
+                onChange={(e) =>
+                  setSelectedApplicant((prev) =>
+                    prev ? { ...prev, status: e.target.value } : prev
+                  )
+                }
               >
-                Flag
-              </button>
+                <option value="">Select Status</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="interviewed">Interviewed</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+
               <button
-                className="btn btn-success text-white"
-                onClick={() => updateStatus(selectedApplicant, "approved")}
+                className="btn btn-primary text-white"
+                onClick={() =>
+                  selectedApplicant &&
+                  updateStatus(selectedApplicant, selectedApplicant.status)
+                }
               >
-                Approve
+                Save
               </button>
-              <button
-                className="btn btn-error text-white"
-                onClick={() => updateStatus(selectedApplicant, "rejected")}
-              >
-                Reject
-              </button>
+
               <button
                 className="btn"
                 onClick={() => {

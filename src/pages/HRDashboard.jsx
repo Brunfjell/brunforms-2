@@ -2,8 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import supabase from "../utils/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
 import { Link } from "react-router-dom";
-import { IoEye } from "react-icons/io5";
-import { MdEdit, MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete, MdPublish } from "react-icons/md";
 import { FaLink } from "react-icons/fa";
 
 export default function HRDashboard() {
@@ -146,25 +145,33 @@ export default function HRDashboard() {
                     onClick={() => handlePublish(form)}
                     className={`btn btn-sm ${
                       form.is_published ? "btn-warning" : "btn-accent"
-                    } text-white`}
+                    } text-white tooltip tooltip-bottom`}
+                    data-tip={form.is_published ? "Unpublish" : "Publish"}
                   >
-                    <FaLink className="h-4 w-4 mr-1" />
-                    {form.is_published ? "Unpublish" : "Publish"}
+                    <MdPublish className="h-4 w-4" />
                   </button>
+                  <a
+                    onClick={async () => {
+                      const link = `${window.location.origin}/public/forms/${form.id}`;
+                      try {
+                        await navigator.clipboard.writeText(link);
+                        alert("Form link copied to clipboard!");
+                      } catch (err) {
+                        console.error("Failed to copy link:", err);
+                        alert("Failed to copy link.");
+                      }
+                    }}
+                    className="btn btn-sm btn-info text-white cursor-pointer tooltip tooltip-bottom"
+                    data-tip="Copy Link"
+                  >
+                    <FaLink className="h-3 w-3" />
+                  </a>
                   <Link
                     to={`/forms/${form.id}/edit`}
                     className="btn btn-sm btn-primary text-white"
                   >
                     <MdEdit className="h-4 w-4" />
                   </Link>
-                  <a
-                    href={`/public/forms/${form.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-sm btn-success text-white"
-                  >
-                    <IoEye className="h-4 w-4" />
-                  </a>
                 </div>
               </div>
             </div>

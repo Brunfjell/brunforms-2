@@ -51,11 +51,16 @@ export default function FormViewer() {
     return (
       <div className="hero bg-base-200 min-h-screen">
         <div className="hero-content text-center">
-          <div className="max-w-md">
-            <h1 className="text-5xl font-bold">Form has expired.</h1>
-            <p className="py-6">
-              Please contact Codex Devops if you think this is a mistake.
-            </p>
+          <div className="flex max-w-md">
+            <div>
+              <img src="/BrunForms-Logo.png" alt="Logo" />
+            </div>
+            <div className="ml-4">            
+              <h1 className="pt-8.5 text-5xl font-bold text-left">Form has expired.</h1>
+              <p className="pt-6 text-left">
+                Please contact <a href="brunfjell.github.io/brunfjell-portfolio" className="text-primary">Support Team</a> if you think this is a mistake.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -63,9 +68,15 @@ export default function FormViewer() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-4">
-      <header className="bg-primary rounded-lg p-6 shadow-lg text-white">
-        <h1 className="text-3xl font-bold">{form.title}</h1>
-        <p className=" mt-2">{form.description}</p>
+      <header className="flex bg-secondary rounded-lg p-6 shadow-lg text-white">
+        <div>
+          <img src="/BrunForms-Logo.png" alt="logo" className="h-18 w-18 mr-4 shadow-lg"/>
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold">{form.title}</h1>
+          <p>{form.description}</p>
+          <p className="text-xs">Already submitted a form? check your status <a href="/status" className="text-[#e6f29d]">here</a></p>
+        </div>
       </header>
 
       <div className="card bg-base-100 shadow-md">

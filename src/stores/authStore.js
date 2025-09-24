@@ -14,19 +14,42 @@ export const useAuthStore = create((set, get) => ({
     set({ session, user: session?.user ?? null });
 
     if (session?.user) {
-      await get().ensureHRUser(session.user);
+      await get().fetchProfile(session.user.id);
     }
 
     set({ loading: false });
 
     supabase.auth.onAuthStateChange(async (_event, newSession) => {
       set({ session: newSession, user: newSession?.user ?? null });
+
       if (newSession?.user) {
-        await get().ensureHRUser(newSession.user);
+        await get().fetchProfile(newSession.user.id);
       } else {
         set({ hrProfile: null });
       }
     });
+  },
+
+  fetchProfile: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from("hr_users")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.warn("No profile found:", error.message);
+        set({ hrProfile: null });
+        return null;
+      }
+
+      set({ hrProfile: data });
+      return data;
+    } catch (err) {
+      console.error("Profile fetch error:", err);
+      return null;
+    }
   },
 
   ensureHRUser: async (user) => {
@@ -42,7 +65,6 @@ export const useAuthStore = create((set, get) => ({
         .single();
       if (error) throw error;
       set({ hrProfile: data });
-
       return data;
     } catch (err) {
       console.error("Failed to upsert hr_user:", err);
@@ -53,10 +75,14 @@ export const useAuthStore = create((set, get) => ({
   signInWithPassword: async ({ email, password }) => {
     set({ loading: true });
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    if (data.session?.user) await get().ensureHRUser(data.session.user);
+    if (error) {
+      set({ loading: false });
+      throw error;
+    }
+    if (data.session?.user) {
+      await get().fetchProfile(data.session.user.id);
+    }
     set({ loading: false });
-
     return data;
   },
 

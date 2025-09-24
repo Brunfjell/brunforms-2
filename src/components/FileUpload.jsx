@@ -9,6 +9,16 @@ export default function FileUpload({ applicantId, onUploaded }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.type !== "application/pdf") {
+      alert("Only PDF files are allowed.");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert("File size exceeds 3MB.");
+      return;
+    }
+
     setFileName(file.name);
     setUploading(true);
 
@@ -43,6 +53,7 @@ export default function FileUpload({ applicantId, onUploaded }) {
     <fieldset className="fieldset border border-gray-300 rounded p-4">
       <input
         type="file"
+        accept="application/pdf"
         className="file-input file-input-bordered w-full"
         onChange={handleFileChange}
         disabled={uploading}

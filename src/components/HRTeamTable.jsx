@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import supabase from "../utils/supabaseClient";
 import { MdEdit, MdDelete } from "react-icons/md";
 import HRUserForm from "../auth/CreateUserForm";
+import LoadingScreen from "./LoadingScreen";
 
 export default function HRTeamTable() {
   const [team, setTeam] = useState([]);
@@ -116,7 +117,7 @@ export default function HRTeamTable() {
 
       <div className="overflow-x-auto">
         {loading ? (
-          <div className="flex justify-center py-6">Loading...</div>
+          <LoadingScreen/>
         ) : (
           <table className="table w-full">
             <thead>
