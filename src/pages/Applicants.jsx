@@ -12,6 +12,8 @@ export default function Applicants() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
 
+  const [emailSentModalOpen, setEmailSentModalOpen] = useState(false);
+
   useEffect(() => {
     async function fetchApplicants() {
       if (!hrProfile?.id) return;
@@ -72,7 +74,24 @@ export default function Applicants() {
       );
 
       if (hrProfile?.id) {
-        await sendApplicantStatusEmail(applicant.id, hrProfile.id, newStatus);
+        const { data: templates, error: templateError } = await supabase
+          .from("hr_mail_templates")
+          .select("*")
+          .eq("hr_id", hrProfile.id)
+          .eq("trigger", newStatus)
+          .eq("trigger_active", true)
+          .limit(1);
+
+        if (templateError) {
+          console.error("Template fetch error:", templateError);
+        } else if (templates && templates.length > 0) {
+          const template = templates[0];
+          await sendApplicantStatusEmail(applicant.id, hrProfile.id, newStatus, {
+            subject: template.subject,
+            body: template.body,
+          });
+          setEmailSentModalOpen(true);
+        }
       }
     } catch (err) {
       console.error("Failed to update status:", err);
@@ -99,9 +118,10 @@ export default function Applicants() {
         >
           <option value="">All Statuses</option>
           <option value="submitted">Submitted</option>
+          <option value="shortlisted">Shortlisted</option>
+          <option value="interviewed">Interviewed</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
-          <option value="shortlisted">Shortlisted</option>
         </select>
       </div>
 
@@ -112,7 +132,7 @@ export default function Applicants() {
           filteredApplicants.map((a) => (
             <div
               key={a.id}
-              className="card bg-base-300 shadow-sm border border-base-200"
+              className="card bg-base-300 shadow-md border border-base-200"
             >
               <div className="card-body">
                 <h2 className="card-title">{getApplicantName(a.data)}</h2>
@@ -249,6 +269,23 @@ export default function Applicants() {
                 }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {emailSentModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Applicant Status Updated</h3>
+            <p>Status has been updated. An email was sent to notify the applicant.</p>
+            <div className="modal-action">
+              <button
+                className="btn btn-primary text-white"
+                onClick={() => setEmailSentModalOpen(false)}
+              >
+                OK
               </button>
             </div>
           </div>

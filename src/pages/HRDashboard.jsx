@@ -123,7 +123,7 @@ export default function HRDashboard() {
           <p>No forms found.</p>
         ) : (
           filteredForms.map((form) => (
-            <div key={form.id} className="card bg-base-300 w-full shadow-sm">
+            <div key={form.id} className="card bg-base-300 w-full shadow-md">
               <div className="card-body">
                 <div className="flex justify-between items-start">
                   <h2 className="card-title">{form.title}</h2>

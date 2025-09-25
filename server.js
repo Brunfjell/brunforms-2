@@ -1,52 +1,49 @@
 import express from "express";
 import nodemailer from "nodemailer";
 import cors from "cors";
-import supabase from "./src/utils/supabaseClient.js";
+import dotenv from "dotenv";
+dotenv.config();
+
+dotenv.config();
 
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 5000;
+console.log("Email user:", process.env.EMAIL_USER);
+console.log("Email pass:", process.env.EMAIL_PASS ? "Loaded" : "Missing");
 
 app.use(cors());
 app.use(express.json());
 
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+
 app.post("/send-email", async (req, res) => {
-  const { hrId, to, subject, body } = req.body;
-
   try {
-    const { data: profile, error } = await supabase
-      .from("hr_mail_profiles")
-      .select("*")
-      .eq("hr_id", hrId)
-      .single();
+    const { to, subject, text, html } = req.body;
 
-    if (error || !profile) {
-      return res.status(400).json({ error: "No SMTP profile found for this HR" });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: profile.smtp_host,
-      port: profile.smtp_port,
-      secure: profile.smtp_port === 465, 
-      auth: {
-        user: profile.smtp_user,
-        pass: profile.smtp_pass,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"${profile.from_name || "HR"}" <${profile.from_email}>`,
+    const info = await transporter.sendMail({
+      from: `"Brunforms" <${process.env.EMAIL_USER}>`,
       to,
       subject,
-      html: body,
+      text,
+      html,
     });
 
-    res.json({ success: true, message: `Email sent to ${to}` });
+    res.json({ success: true, messageId: info.messageId });
   } catch (err) {
-    console.error("Email error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Error sending email:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend running at http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
