@@ -20,6 +20,7 @@ export default function MailTemplates() {
     body: [{ type: "paragraph", children: [{ text: "" }] }],
     trigger: "submitted",
     trigger_active: true,
+    form_id: null,
   });
 
   async function fetchTemplates() {
@@ -32,7 +33,7 @@ export default function MailTemplates() {
       .order("created_at", { ascending: false });
 
     if (error) console.error("Supabase error (templates):", error);
-    else setTemplates(data);
+    else setTemplates(data || []);
 
     setLoading(false);
   }
@@ -46,7 +47,7 @@ export default function MailTemplates() {
       .eq("is_published", true);
 
     if (error) console.error("Supabase error (forms):", error);
-    else setForms(data);
+    else setForms(data || []);
   }
 
   useEffect(() => {
@@ -56,10 +57,15 @@ export default function MailTemplates() {
 
   function handleFormSelect(formId) {
     setSelectedForm(formId);
+    setFormData((prev) => ({ ...prev, form_id: formId }));
     const form = forms.find((f) => f.id === formId);
+
     if (form && Array.isArray(form.schema)) {
       setFormFields(
-        form.schema.map((field) => ({ name: field.name, label: field.label }))
+        form.schema.map((field) => ({
+          name: field.name,
+          label: field.label,
+        }))
       );
     } else {
       setFormFields([]);
@@ -79,6 +85,11 @@ export default function MailTemplates() {
       ...formData,
       body: JSON.stringify(formData.body),
     };
+
+    if (!rest.form_id) {
+      alert("Please select a form before saving.");
+      return;
+    }
 
     if (id) {
       const { error } = await supabase
@@ -106,9 +117,13 @@ export default function MailTemplates() {
       body: [{ type: "paragraph", children: [{ text: "" }] }],
       trigger: "submitted",
       trigger_active: true,
+      form_id: null,
     });
     setSelectedForm(null);
     setFormFields([]);
+    if (editorRef.current) {
+      editorRef.current.clear(); 
+    }
   }
 
   function handleEdit(tpl) {
@@ -123,6 +138,7 @@ export default function MailTemplates() {
     } catch (e) {
       body = [{ type: "paragraph", children: [{ text: tpl.body || "" }] }];
     }
+
     setFormData({
       id: tpl.id,
       name: tpl.name,
@@ -130,7 +146,11 @@ export default function MailTemplates() {
       body,
       trigger: tpl.trigger || "submitted",
       trigger_active: tpl.trigger_active ?? true,
+      form_id: tpl.form_id || null,
     });
+
+    setSelectedForm(tpl.form_id || null);
+    if (tpl.form_id) handleFormSelect(tpl.form_id);
   }
 
   async function handleDelete(id) {
@@ -149,9 +169,8 @@ export default function MailTemplates() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-4">Mail Templates</h2>
-
       <form onSubmit={handleSave} className="space-y-4 mb-8 relative">
+        <label className="block font-medium mb-1">Template Name</label>
         <input
           type="text"
           placeholder="Template Name"
@@ -161,6 +180,7 @@ export default function MailTemplates() {
           required
         />
 
+        <label className="block font-medium mb-1">Send when</label>
         <select
           value={formData.trigger}
           onChange={(e) => setFormData({ ...formData, trigger: e.target.value })}
@@ -172,21 +192,13 @@ export default function MailTemplates() {
           <option value="rejected">Rejected</option>
         </select>
 
-        <input
-          type="text"
-          placeholder="Subject (supports {placeholders})"
-          value={formData.subject}
-          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-          className="w-full p-2 input input-bordered rounded"
-          required
-        />
-
         <div>
-          <label className="block font-medium mb-1">Select Form:</label>
+          <label className="block font-medium mb-1">Select Form</label>
           <select
             value={selectedForm || ""}
             onChange={(e) => handleFormSelect(e.target.value)}
             className="w-full p-2 border border-neutral-300 rounded"
+            required
           >
             <option value="">Select Form</option>
             {forms.map((f) => (
@@ -204,13 +216,25 @@ export default function MailTemplates() {
                 type="button"
                 key={field.name}
                 onClick={() => insertPlaceholder(field.name)}
-                className="px-2 py-1 rounded bg-primary/50 text-[#1e1e1e]"
+                className="px-2 py-1 rounded bg-primary/80 text-white font-semibold"
               >
                 ({field.name})
               </button>
             ))}
           </div>
         )}
+
+        <label className="block font-medium mb-1">Subject</label>
+        <input
+          type="text"
+          placeholder="Subject (supports {placeholders})"
+          value={formData.subject}
+          onChange={(e) =>
+            setFormData({ ...formData, subject: e.target.value })
+          }
+          className="w-full p-2 input input-bordered rounded"
+          required
+        />
 
         <div className="rounded">
           <RichTextEditor
@@ -233,7 +257,10 @@ export default function MailTemplates() {
         </label>
 
         <div className="flex gap-2">
-          <button type="submit" className="px-4 py-2 bg-primary text-white rounded">
+          <button
+            type="submit"
+            className="px-4 py-2 bg-primary text-white rounded"
+          >
             {formData.id ? "Update Template" : "+ Add Template"}
           </button>
           {formData.id && (
@@ -260,7 +287,8 @@ export default function MailTemplates() {
                 <div>
                   <h3 className="font-semibold">{tpl.name}</h3>
                   <p className="text-sm text-gray-600">
-                    Trigger: {tpl.trigger} {tpl.trigger_active ? "(active)" : "(inactive)"}
+                    Trigger: {tpl.trigger}{" "}
+                    {tpl.trigger_active ? "(active)" : "(inactive)"}
                   </p>
                 </div>
                 <div className="space-x-2">
@@ -268,13 +296,13 @@ export default function MailTemplates() {
                     onClick={() => handleEdit(tpl)}
                     className="px-3 py-1 bg-secondary text-white rounded"
                   >
-                    <MdEdit className="w-4 h-5"/>
+                    <MdEdit className="w-4 h-5" />
                   </button>
                   <button
                     onClick={() => handleDelete(tpl.id)}
                     className="px-3 py-1 bg-red-400 text-white rounded"
                   >
-                    <MdDelete className="w-4 h-5"/>
+                    <MdDelete className="w-4 h-5" />
                   </button>
                 </div>
               </div>

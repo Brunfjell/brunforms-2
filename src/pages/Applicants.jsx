@@ -44,10 +44,12 @@ export default function Applicants() {
 
     const firstName = data.firstName || data["first-name"];
     const lastName = data.lastName || data["last-name"];
+    const fullName = data.lastName || data["full-name"];
 
     if (firstName && lastName) return `${firstName} ${lastName}`;
     if (firstName) return firstName;
     if (lastName) return lastName;
+    if (fullName) return fullName;
 
     const firstStringField = Object.values(data).find(
       (val) => typeof val === "string" && val.trim() !== ""
