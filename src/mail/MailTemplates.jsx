@@ -19,7 +19,6 @@ export default function MailTemplates() {
     subject: "",
     body: [{ type: "paragraph", children: [{ text: "" }] }],
     trigger: "submitted",
-    trigger_active: true,
     form_id: null,
   });
 
@@ -116,13 +115,12 @@ export default function MailTemplates() {
       subject: "",
       body: [{ type: "paragraph", children: [{ text: "" }] }],
       trigger: "submitted",
-      trigger_active: true,
       form_id: null,
     });
     setSelectedForm(null);
     setFormFields([]);
     if (editorRef.current) {
-      editorRef.current.clear(); 
+      editorRef.current.clear();
     }
   }
 
@@ -145,7 +143,6 @@ export default function MailTemplates() {
       subject: tpl.subject,
       body,
       trigger: tpl.trigger || "submitted",
-      trigger_active: tpl.trigger_active ?? true,
       form_id: tpl.form_id || null,
     });
 
@@ -164,6 +161,18 @@ export default function MailTemplates() {
       .eq("hr_id", hrProfile.id);
 
     if (error) console.error("Delete error:", error);
+    fetchTemplates();
+  }
+
+  async function toggleActive(tpl) {
+    if (!hrProfile?.id) return;
+    const { error } = await supabase
+      .from("hr_mail_templates")
+      .update({ trigger_active: !tpl.trigger_active, updated_at: new Date() })
+      .eq("id", tpl.id)
+      .eq("hr_id", hrProfile.id);
+
+    if (error) console.error("Toggle active error:", error);
     fetchTemplates();
   }
 
@@ -244,18 +253,6 @@ export default function MailTemplates() {
           />
         </div>
 
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={formData.trigger_active}
-            onChange={(e) =>
-              setFormData({ ...formData, trigger_active: e.target.checked })
-            }
-            className="toggle w-7 h-5 text-neutral-400 checked:text-red-500 rounded-sm"
-          />
-          Active
-        </label>
-
         <div className="flex gap-2">
           <button
             type="submit"
@@ -282,29 +279,38 @@ export default function MailTemplates() {
       ) : (
         <ul className="space-y-4">
           {templates.map((tpl) => (
-            <li key={tpl.id} className="p-4 border border-neutral-300 rounded">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-semibold">{tpl.name}</h3>
-                  <p className="text-sm text-gray-600">
-                    Trigger: {tpl.trigger}{" "}
-                    {tpl.trigger_active ? "(active)" : "(inactive)"}
-                  </p>
-                </div>
-                <div className="space-x-2">
-                  <button
-                    onClick={() => handleEdit(tpl)}
-                    className="px-3 py-1 bg-secondary text-white rounded"
-                  >
-                    <MdEdit className="w-4 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(tpl.id)}
-                    className="px-3 py-1 bg-red-400 text-white rounded"
-                  >
-                    <MdDelete className="w-4 h-5" />
-                  </button>
-                </div>
+            <li
+              key={tpl.id}
+              className="p-4 border border-neutral-300 rounded flex justify-between items-center"
+            >
+              <div>
+                <h3 className="font-semibold">{tpl.name}</h3>
+                <p className="text-sm text-gray-600">
+                  Trigger: {tpl.trigger}{" "}
+                  {tpl.trigger_active ? "(active)" : "(inactive)"}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={tpl.trigger_active}
+                    onChange={() => toggleActive(tpl)}
+                    className="toggle w-9 h-7 text-neutral-400 checked:text-green-500 rounded-sm"
+                  />
+                </label>
+                <button
+                  onClick={() => handleEdit(tpl)}
+                  className="px-3 py-1 bg-secondary text-white rounded"
+                >
+                  <MdEdit className="w-4 h-5" />
+                </button>
+                <button
+                  onClick={() => handleDelete(tpl.id)}
+                  className="px-3 py-1 bg-red-400 text-white rounded"
+                >
+                  <MdDelete className="w-4 h-5" />
+                </button>
               </div>
             </li>
           ))}

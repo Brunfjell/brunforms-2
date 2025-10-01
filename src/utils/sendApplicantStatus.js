@@ -44,11 +44,8 @@ function cleanTemplateText(text) {
   if (!text) return "";
 
   text = text.replace(/^"(.*)"$/, "$1");
-
   text = text.replace(/\\n/g, "\n");
-
   text = text.replace(/\n\s*/g, "\n");
-
   text = text.replace(/\\"/g, '"');
 
   return text.trim();
@@ -67,21 +64,33 @@ export async function sendApplicantStatusEmail(applicantId, hrId, newStatus) {
       return;
     }
 
+    if (!applicant.form_id) {
+      console.log("Applicant has no form_id, skipping email.");
+      return;
+    }
+
     const { data: template, error: templateError } = await supabase
       .from("hr_mail_templates")
       .select("id, subject, body")
       .eq("hr_id", hrId)
-      .eq("trigger", `${newStatus}`)
+      .eq("trigger", newStatus)
       .eq("trigger_active", true)
+      .eq("form_id", applicant.form_id)
       .maybeSingle();
 
     if (templateError || !template) {
-      console.log(`No active template found for trigger: ${newStatus}`);
+      console.log(
+        `No active template found for trigger "${newStatus}" and form_id ${applicant.form_id}`
+      );
       return;
     }
 
-    const subject = cleanTemplateText(replacePlaceholders(template.subject, applicant));
-    const body = cleanTemplateText(replacePlaceholders(template.body, applicant));
+    const subject = cleanTemplateText(
+      replacePlaceholders(template.subject, applicant)
+    );
+    const body = cleanTemplateText(
+      replacePlaceholders(template.body, applicant)
+    );
 
     const response = await fetch("http://localhost:5000/send-email", {
       method: "POST",
